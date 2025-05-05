@@ -10,9 +10,9 @@ from typing import Sequence
 from ._version import version
 
 subcommands = [
-    # "power_v4",
-    # "motor_v4",
-    # "servo_v4",
+    "power_test",
+    "motor_test",
+    "servo_test",
     # "arduino",
     # "camera",
     # "update_inventory",
