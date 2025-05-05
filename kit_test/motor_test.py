@@ -158,7 +158,7 @@ def main(args: argparse.Namespace) -> None:
 
         while True:
             try:
-                test_board(writer)
+                test_board(writer, args.fw_ver)
             except AssertionError as e:
                 logger.error(f"Test failed: {e}")
 
@@ -181,5 +181,10 @@ def create_subparser(subparsers: argparse._SubParsersAction) -> None:
     )
 
     parser.add_argument('--log', default=None, help='A CSV file to save test results to.')
+    parser.add_argument(
+        '--fw-ver',
+        default=None,
+        help='The expected firmware version on the boards.',
+    )
 
     parser.set_defaults(func=main)
