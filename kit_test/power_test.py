@@ -295,7 +295,7 @@ def test_board(
 
 
 def main(args: argparse.Namespace) -> None:
-    """Main function for the motor board test."""
+    """Main function for the power board test."""
     new_log = True
     fieldnames = [
         'asset', 'sw_version', 'passed', 'input_volt',
