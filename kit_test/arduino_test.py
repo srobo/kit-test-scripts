@@ -42,7 +42,7 @@ SUPPORTED_VID_PIDS = [
 def get_avrdude_path() -> Path:
     """Get the path to avrdude."""
     if sys.platform.startswith('win'):
-        from avrdude_windows import get_avrdude_path
+        from avrdude_windows import get_avrdude_path  # type: ignore[import-untyped,unused-ignore]
 
         return Path(get_avrdude_path())
     else:
