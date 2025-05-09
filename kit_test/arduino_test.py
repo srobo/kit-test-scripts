@@ -18,7 +18,7 @@ import sys
 import textwrap
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import serial
 
@@ -31,12 +31,12 @@ logger = logging.getLogger("arduino_test")
 BAUDRATE = 19200  # NOTE: This needs to match the baudrate in the test sketch
 
 
-def parse_test_output(test_output: str, results: Dict[str, Any]) -> None:
+def parse_test_output(test_output: List[str], results: Dict[str, Any]) -> bool:
     """Parse the test output from the Arduino."""
     current_test = 1
+    pass_fail = True
 
-    lines = test_output.splitlines()
-    lines_iter = iter(lines)
+    lines_iter = iter(test_output)
     for line in lines_iter:
         line = line.strip()
         if not line:
@@ -52,14 +52,37 @@ def parse_test_output(test_output: str, results: Dict[str, Any]) -> None:
             assert test_num == current_test, f"Missing test {current_test}"
             current_test += 1
 
-            # TODO
             if test_num == 1:
-                pass
-            elif test_num > 1 and test_num < 6:
+                result_line = next(lines_iter)
+                results['stuck_pins'] = result_line.split()[-1] == 'OK!'
+            elif test_num in range(2, 6):
+                name_prefix = "" if test_num < 4 else "analog-"
+                name_suffix = "sink" if test_num % 2 else "source"
+                header_line = next(lines_iter)
+                _volts_line = next(lines_iter)
+                result_line = next(lines_iter)
 
-                pass
-            elif test_num >= 6:
-                pass
+                header_fields = header_line.split()
+                result_fields = result_line.split()
+                for pin, result_val in zip(header_fields, result_fields):
+                    results[f'{name_prefix}{pin}_{name_suffix}'] = (result_val == '-OK-')
+            elif test_num in range(6, 9):
+                adc_level = {6: 'mid', 7: 'high', 8: 'low'}[test_num]
+                adc_bounds = {6: (2.2, 2.7), 7: (3.0, 3.6), 8: (1.2, 2.0)}[test_num]
+                header_line = next(lines_iter)
+                volts_line = next(lines_iter)
+
+                header_fields = header_line.split()
+                result_fields = volts_line.split()
+                for pin, result_val in zip(header_fields, result_fields):
+                    pin_num = pin.split('-')[-1]
+                    pin_result = adc_bounds[0] <= float(result_val) <= adc_bounds[1]
+                    results[f'adc_{adc_level}_{pin_num}'] = pin_result
+                    if not pin_result:
+                        pass_fail = False
+
+    assert current_test == 9, f"Test {current_test} not found"
+    return pass_fail
 
 
 def test_arduino(
@@ -97,21 +120,22 @@ def test_arduino(
         serial_port = serial.Serial(
             port=arduino.port,
             baudrate=BAUDRATE,
-            timeout=30,
+            timeout=2,
         )
 
         try:
-            test_output = serial_port.read_until(b'TEST COMPLETE\n').decode('utf-8')
-            test_summary = serial_port.readline().decode('utf-8').strip()
+            *lines_bytes, test_summary_bytes = serial_port.readlines()
+            lines = [line.decode('utf-8').strip() for line in lines_bytes]
+            test_summary = test_summary_bytes.decode('utf-8').strip()
         except serial.SerialTimeoutException:
             logger.error("Timed out waiting for test output")
             raise AssertionError("Timed out waiting for test output")
         finally:
             serial_port.close()
 
-        parse_test_output(test_output, results)
+        assert parse_test_output(lines, results), "Failed analog tests"
         # Test summary only contains content when there are failures
-        assert test_summary == "", f"Test failed: {test_summary}"
+        assert test_summary == "", test_summary
 
         # Flash arduino with stock firmware
         flash_arduino(avrdude, arduino.port, stock_fw_hex)
@@ -127,7 +151,16 @@ def test_arduino(
 def main(args: argparse.Namespace) -> None:
     """Main function for the arduino test."""
     new_log = True
-    fieldnames = ['asset', 'serial', 'passed']
+    fieldnames = ['asset', 'serial', 'passed', 'stuck_pins']
+    fieldnames += [f'PIN-{n}_source' for n in range(3, 13)]
+    fieldnames += [f'PIN-{n}_sink' for n in range(3, 13)]
+    fieldnames += [f'analog-PIN-{n}_source' for n in range(1, 6)]
+    fieldnames += [f'analog-PIN-{n}_sink' for n in range(1, 6)]
+    fieldnames += [
+        f'adc_{lvl}_{n}'
+        for lvl in ('mid', 'high', 'low')
+        for n in range(0, 6)
+    ]
 
     try:
         avrdude = get_avrdude_path()
