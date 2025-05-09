@@ -14,57 +14,21 @@ import argparse
 import csv
 import logging
 import os
-import subprocess
 import sys
 import textwrap
 from pathlib import Path
-from shutil import which
 from tempfile import NamedTemporaryFile
 from typing import Any, Dict, Optional
 
 import serial
 
 from .arduino_binaries import STOCK_FW, TEST_FW
-from .hal import VidPid, discover_boards
+from .arduino_flash import SUPPORTED_VID_PIDS, flash_arduino, get_avrdude_path
+from .hal import discover_boards
 
 logger = logging.getLogger("arduino_test")
 
 BAUDRATE = 19200  # NOTE: This needs to match the baudrate in the test sketch
-SUPPORTED_VID_PIDS = [
-    VidPid(0x2341, 0x0043),  # Arduino Uno rev 3
-    VidPid(0x2A03, 0x0043),  # Arduino Uno rev 3
-    VidPid(0x1A86, 0x7523),  # Uno
-    VidPid(0x10C4, 0xEA60),  # Ruggeduino
-    VidPid(0x16D0, 0x0613),  # Ruggeduino
-]
-
-
-def get_avrdude_path() -> Path:
-    """Get the path to avrdude."""
-    if sys.platform.startswith('win'):
-        from avrdude_windows import (  # type: ignore[import-untyped,unused-ignore]
-            get_avrdude_path,
-        )
-
-        return Path(get_avrdude_path())
-    else:
-        avrdude_path = which('avrdude')
-        if avrdude_path is None:
-            raise FileNotFoundError("avrdude not found in PATH")
-        return Path(avrdude_path)
-
-
-def flash_arduino(avrdude: Path, serial_port: str, sketch_path: Path) -> None:
-    """Flash the Arduino board with a sketch binary."""
-    try:
-        subprocess.check_call([
-            str(avrdude), "-p", "atmega328p", "-c", "arduino",
-            "-P", serial_port, "-D", "-U",
-            f"flash:w:{sketch_path!s}:i"
-        ])
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to flash Arduino: {e}")
-        raise AssertionError("Failed to flash Arduino") from e
 
 
 def parse_test_output(test_output: str, results: Dict[str, Any]) -> None:
@@ -127,6 +91,7 @@ def test_arduino(
 
         # Flash arduino with test sketch
         flash_arduino(avrdude, arduino.port, test_sketch_hex)
+        logger.info(f"Flashed {test_sketch_hex} to {arduino.port}")
 
         logger.info(f"Opening serial port {arduino.port}")
         serial_port = serial.Serial(
@@ -134,7 +99,6 @@ def test_arduino(
             baudrate=BAUDRATE,
             timeout=30,
         )
-        logger.info(f"Flashed {test_sketch_hex} to {arduino.port}")
 
         try:
             test_output = serial_port.read_until(b'TEST COMPLETE\n').decode('utf-8')

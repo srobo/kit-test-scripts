@@ -14,6 +14,7 @@ subcommands = [
     "motor_test",
     "servo_test",
     "arduino_test",
+    "arduino_flash",
     "camera_test",
     # "update_inventory",
 ]
