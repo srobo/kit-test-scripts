@@ -16,7 +16,7 @@ import logging
 import os
 import textwrap
 from tempfile import NamedTemporaryFile
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import cv2
 from april_vision import Processor, USBCamera, calibrations, find_cameras
@@ -32,6 +32,7 @@ def test_camera(
     marker_size: float = 80,
 ) -> None:
     """Test a camera."""
+    cam: Optional[USBCamera] = None
     results: Dict[str, Any] = {}
 
     # Find available cameras
@@ -85,6 +86,8 @@ def test_camera(
             cv2.imshow('image', frame.colour_frame)
             button = cv2.waitKey(1) & 0xFF
             if (button == ord('q')) or (button == 27):
+                cv2.destroyAllWindows()
+                _ = cv2.waitKey(1)  # Window is only closed after this wait
                 # Quit on q or ESC key
                 raise AssertionError("Camera test aborted by user")
 
@@ -106,28 +109,30 @@ def test_camera(
 
         if marker.has_pose():
             distance = marker.distance
-            logger.info(f"Distance to marker: {distance:.2f} m")
             results['distance'] = distance
-            logger.info(f"Detected marker ID: {marker.id} at distance {distance / 1000:.2f} m")
+            logger.info(f"Detected marker ID: {marker.id} at distance {distance:.0f} mm")
         else:
             logger.info(f"Detected marker ID: {marker.id}")
 
         logger.info("Press any key to continue")
 
         # Any key closes the preview window
-        cv2.waitKey(0)
+        _ = cv2.waitKey(0)
         cv2.destroyAllWindows()
+        _ = cv2.waitKey(1)
 
         logger.info("Camera passed")
         results['passed'] = True
     finally:
         output_writer.writerow(results)
+        if cam is not None:
+            cam.close()
 
 
 def main(args: argparse.Namespace) -> None:
     """Main function for the camera test."""
     new_log = True
-    fieldnames = ['asset', 'serial', 'passed']
+    fieldnames = ['asset', 'serial', 'passed', 'distance']
 
     vidpid_filter = [vidpid.lower() for vidpid in args.vidpid_filter]
 
@@ -177,8 +182,8 @@ def create_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument('--vidpid-filter', default=['046d:0825'], nargs='+',
                         help='USB VID and PID filter for the camera. '
                              'Format: VID:PID, e.g. 1234:5678')
-    parser.add_argument('--marker-id', type=int, default=0,
-                        help='AprilTag marker ID to detect. Default is 0.')
+    parser.add_argument('--marker-id', type=int, default=101,
+                        help='AprilTag marker ID to detect. Default is 101.')
     parser.add_argument('--marker-size', type=float, default=80,
                         help='Size of the AprilTag marker in mm. Default is 80 mm.')
 
