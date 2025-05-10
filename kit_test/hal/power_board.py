@@ -1,7 +1,6 @@
 """The power board module provides an interface to the power board firmware over serial."""
 from __future__ import annotations
 
-import atexit
 import logging
 from enum import IntEnum
 from typing import NamedTuple
@@ -93,8 +92,6 @@ class PowerBoard:
             f"Expected board type 'PBv4B', got {identity.board_type!r} instead."
         self._serial.set_identity(identity)
 
-        atexit.register(self._cleanup)
-
     def identify(self) -> BoardIdentity:
         """
         Get the identity of the board.
@@ -145,17 +142,9 @@ class PowerBoard:
         """
         self._serial.write(f'*SYS:FAN:SET:{bool(value):d}')
 
-    def _cleanup(self) -> None:
-        """
-        Reset the power board and turn off all outputs when exiting.
-
-        This method is registered as an exit handler and is called to ensure
-        the power board is left in a safe state.
-        """
-        try:
-            self.reset()
-        except Exception:
-            logger.warning("Failed to cleanup power board.")
+    def close(self) -> None:
+        """Close the underlying serial port."""
+        self._serial.stop()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__qualname__}: {self._serial}>"

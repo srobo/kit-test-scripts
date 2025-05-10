@@ -292,6 +292,7 @@ def test_board(
 
         # Disable all outputs
         board.reset()
+        board.close()
 
 
 def main(args: argparse.Namespace) -> None:

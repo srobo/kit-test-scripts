@@ -1,7 +1,6 @@
 """The motor board module provides an interface to the motor board firmware over serial."""
 from __future__ import annotations
 
-import atexit
 import logging
 from enum import IntEnum
 from typing import NamedTuple
@@ -79,9 +78,6 @@ class MotorBoard:
 
         self._serial.set_identity(identity)
 
-        # Disable motors on exit
-        atexit.register(self._cleanup)
-
     def identify(self) -> BoardIdentity:
         """
         Get the identity of the board.
@@ -108,16 +104,9 @@ class MotorBoard:
         """
         self._serial.write('*RESET')
 
-    def _cleanup(self) -> None:
-        """
-        Disable the motors while exiting.
-
-        This method is registered as an exit handler.
-        """
-        try:
-            self.reset()
-        except Exception:
-            logger.warning(f"Failed to cleanup motor board {self._serial}.")
+    def close(self) -> None:
+        """Close the underlying serial port."""
+        self._serial.stop()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__qualname__}: {self._serial}>"

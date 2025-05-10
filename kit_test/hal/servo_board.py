@@ -1,7 +1,6 @@
 """The servo board module provides an interface to the servo board firmware over serial."""
 from __future__ import annotations
 
-import atexit
 import logging
 from typing import NamedTuple
 
@@ -75,8 +74,6 @@ class ServoBoard:
 
         self._serial.set_identity(identity)
 
-        atexit.register(self._cleanup)
-
     def identify(self) -> BoardIdentity:
         """
         Get the identity of the board.
@@ -124,16 +121,9 @@ class ServoBoard:
         response = self._serial.query('SERVO:V?')
         return float(response) / 1000
 
-    def _cleanup(self) -> None:
-        """
-        Reset the board and disable all servos on exit.
-
-        This is registered as an exit function.
-        """
-        try:
-            self.reset()
-        except Exception:
-            logger.warning(f"Failed to cleanup servo board {self._serial}.")
+    def close(self) -> None:
+        """Close the underlying serial port."""
+        self._serial.stop()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__qualname__}: {self._serial}>"

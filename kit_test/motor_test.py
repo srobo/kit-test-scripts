@@ -129,6 +129,7 @@ def test_board(output_writer: csv.DictWriter, fw_ver: Optional[str] = None) -> N
     finally:
         output_writer.writerow(results)
         board.reset()
+        board.close()
 
 
 def main(args: argparse.Namespace) -> None:
