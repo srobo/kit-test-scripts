@@ -32,7 +32,7 @@ def test_camera(
     marker_size: float = 80,
 ) -> None:
     """Test a camera."""
-    cam: Optional[USBCamera] = None
+    cam: Optional[Processor] = None
     results: Dict[str, Any] = {}
 
     # Find available cameras
