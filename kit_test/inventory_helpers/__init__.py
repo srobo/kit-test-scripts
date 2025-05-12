@@ -1,5 +1,6 @@
 import argparse
 import importlib
+from importlib.util import find_spec
 
 subcommands = [
     # "collate_tested",
@@ -7,13 +8,19 @@ subcommands = [
     "empty_boxes",
 ]
 
+helper_description = "A collection of useful inventory helpers"
+
+if find_spec('sr.tools') is None:
+    subcommands = []
+    helper_description = "A collection of useful inventory helpers. Requires sr.tools"
+
 
 def create_subparser(subparsers: argparse._SubParsersAction) -> None:
     """Subparser for the inventory subcommands."""
     parser = subparsers.add_parser(
         "inventory",
-        description="A collection of useful inventory helpers",
-        help="A collection of useful inventory helpers",
+        description=helper_description,
+        help=helper_description,
     )
 
     subparsers = parser.add_subparsers(required=True)

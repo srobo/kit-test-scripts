@@ -33,6 +33,9 @@ dev = [
     "build",
     "types-pyserial >=3,<4",
 ]
+inv = [
+    "sr.tools ==1.2.0"
+]
 
 [project.scripts]
 kit_test = "kit_test.cli:main"
