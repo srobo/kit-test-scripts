@@ -61,7 +61,7 @@ kit_test servo_v4
 
 ### arduino
 
-Here we are testing that all the pins on the arduino are funtional.
+Here we are testing that all the pins on the arduino are functional.
 
 To run this test you need to attach a testing hat to the Arduino that connects all pins (except pin 13) together through resistors and biases the common point to 2.5V.
 
