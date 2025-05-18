@@ -2,7 +2,7 @@
 name = "sr-kit-test"
 description = "A collection of test scripts for the Student Robotics v4 kit."
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "MIT"
 authors = [{name = "Will Barber", email = "wbarber@studentrobotics.org"}]
 maintainers = [{name = "Student Robotics", email = "kit-team@studentrobotics.org"}]
 
@@ -13,7 +13,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Typing :: Typed",
-    "License :: OSI Approved :: MIT License",
 ]
 
 dynamic = ["version"]
@@ -32,9 +31,6 @@ dev = [
     "mypy==1.9.0",
     "build",
     "types-pyserial >=3,<4",
-]
-inv = [
-    "sr.tools @git+https://github.com/srobo/tools.git@minimal"
 ]
 
 [project.scripts]
