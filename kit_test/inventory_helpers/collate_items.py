@@ -9,48 +9,73 @@ import os
 import subprocess
 import textwrap
 from pathlib import Path
-from typing import List
+from typing import List, Optional
+
+from sr.tools.inventory import assetcode  # type: ignore[import-untyped]
+from sr.tools.inventory.inventory import get_inventory  # type: ignore[import-untyped]
 
 logger = logging.getLogger("collate_items")
+GIT_EXE = os.getenv('GIT_EXE', 'git')
 
 
-def pack_box(box: str, contents: List[str]) -> None:
+def pack_box(box: str, contents: List[str], collation_loc: Optional[Path]) -> None:
     """Move contents into box."""
-    # move box to current folder
-    subprocess.run(['sr', 'inv-mv', box], check=True)
+    inv = get_inventory()
+    try:
+        # find box, check if box contains anything
+        [box_asset] = inv.query(f'code:{box}')
+    except ValueError:
+        raise RuntimeError(f"Box {box} not found")
 
-    res = subprocess.run(
-        ['sr', 'inv-findpart', box], capture_output=True, text=True)
-    box_path = res.stdout.strip()
-
-    items = []
-    res = subprocess.run([
-        'sr',
-        'inv-query',
-        f'children of code:{box}',
-    ], check=True, capture_output=True, text=True)
-    items = res.stdout.strip().split('\n')
-
-    if items:
-        logger.warning(f"The box is not empty, contains {len(items)} items.")
+    if box_asset.children:
+        logger.warning(f"The box is not empty, contains {len(box_asset.children)} items.")
         empty_check = input("Continue with the transaction [Y/n]") or 'y'
         if empty_check.lower().strip() != 'y':
             return
 
-    # move remaining codes to box (cd box, sr inv mv)
-    os.chdir(box_path)
-    subprocess.run(['sr', 'inv-mv'] + contents, check=True)
-    print(len(list(Path(subprocess.run([
-        'sr', 'inv-findpart', box,
-    ], capture_output=True, text=True).stdout.strip()).iterdir())))
+    # Get paths on all parts to add to box
+    item_paths = []
+    for part in contents:
+        try:
+            item = inv.root.parts[assetcode.normalise(part)]
+        except KeyError:
+            logger.error(f"Unable to find asset {part!r}")
+            continue
+
+        if item.parent.path == box_asset.path:
+            logger.warning(f"Asset {item.code} is already in box {box_asset.code}")
+            continue
+
+        item_paths.append(item.path)
+
+    # Move parts into box
+    subprocess.check_call([GIT_EXE, 'mv', *item_paths, box_asset.path])
+
+    if collation_loc:
+        collation_loc.mkdir(parents=True, exist_ok=True)
+
+        # Move box to the target directory
+        subprocess.check_call([GIT_EXE, 'mv', box_asset.path, str(collation_loc)])
+
+    # regenerate inventory and count items now in box
+    inv = get_inventory()
+    [box_asset] = inv.query(f'code:{box}')
+    logger.info(f"Box {box_asset.code} now contains {len(box_asset.children)} items")
 
 
 def main(args: argparse.Namespace) -> None:
     """Main function for collating items."""
-    args.base_dir.mkdir(parents=True, exist_ok=True)
-    os.chdir(args.base_dir)
+    os.chdir(args.inventory)
+    if args.base_dir:
+        working_dir = args.inventory / args.base_dir
+    else:
+        working_dir = None
 
-    pack_box(args.box, args.contents)
+    try:
+        pack_box(args.box, args.contents, working_dir)
+    except RuntimeError as e:
+        logger.error(e)
+        exit(1)
 
 
 def create_subparser(subparsers: argparse._SubParsersAction) -> None:
@@ -65,7 +90,14 @@ def create_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument(
         'contents', nargs='+', help="Asset code of items to populate the box")
     parser.add_argument(
-        '--base_dir', '-dir', default=Path('.'), type=Path,
-        help="The directory to move the boxes to. (default: %(default)s)")
+        '--base_dir', '-dir', type=Path,
+        help="The location to move the boxes to, relative to the base of the inventory.")
+    parser.add_argument(
+        '-inv', '--inventory', default=Path(os.environ.get('SR_INVENTORY', '.')), type=Path,
+        help=(
+            "The directory of your local checkout of the SR inventory. "
+            "Uses the environment variable SR_INVENTORY for the default, "
+            "currently: %(default)s"
+        ))
 
     parser.set_defaults(func=main)

@@ -6,34 +6,36 @@ and move all items in the boxes to the loose location.
 """
 import argparse
 import logging
+import os
 import subprocess
 import textwrap
 from pathlib import Path
 from typing import List
 
+from sr.tools.inventory.inventory import get_inventory  # type: ignore[import-untyped]
+
 logger = logging.getLogger("empty_boxes")
+GIT_EXE = os.getenv('GIT_EXE', 'git')
 
 
 def get_boxes_contents(boxes: List[str]) -> List[str]:
     """Get a list of all the immediate children of the boxes."""
-    res = subprocess.run([
-        'sr',
-        'inv-query',
-        f'children of code in {{ {", ".join(boxes)} }}',
-    ], check=True, capture_output=True, text=True)
-    return res.stdout.strip().split('\n')
+    inv = get_inventory()
+    contents = inv.query(f'children of code in {{ {", ".join(boxes)} }}')
+    return [item.path for item in contents]
 
 
 def empty_boxes(boxes: List[str], loose: str) -> None:
     """Empty boxes to the loose location."""
     loose_path = Path(loose).resolve()
     loose_path.mkdir(parents=True, exist_ok=True)
-    subprocess.run(['git', 'mv', *get_boxes_contents(boxes), loose_path])
+    subprocess.run([GIT_EXE, 'mv', *get_boxes_contents(boxes), loose_path])
 
 
 def main(args: argparse.Namespace) -> None:
     """Main function for emptying boxes."""
-    empty_boxes(args.boxes, args.loose)
+    os.chdir(args.inventory)
+    empty_boxes(args.boxes, args.inventory / args.loose)
 
 
 def create_subparser(subparsers: argparse._SubParsersAction) -> None:
@@ -47,7 +49,14 @@ def create_subparser(subparsers: argparse._SubParsersAction) -> None:
 
     parser.add_argument('boxes', nargs='+', help='Box asset codes')
     parser.add_argument(
-        '--loose', default='.',
-        help='Location to empty the box contents to. (default: %(default)s)')
+        '--loose', required=True, type=Path,
+        help='Location to empty the box contents to, relative to the base of the inventory.')
+    parser.add_argument(
+        '-inv', '--inventory', default=Path(os.environ.get('SR_INVENTORY', '.')), type=Path,
+        help=(
+            "The directory of your local checkout of the SR inventory. "
+            "Uses the environment variable SR_INVENTORY for the default, "
+            "currently: %(default)s"
+        ))
 
     parser.set_defaults(func=main)
