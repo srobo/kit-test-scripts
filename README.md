@@ -1,6 +1,7 @@
 # kit_test
 
 [![Lint & build](https://github.com/srobo/kit-test-scripts/actions/workflows/test_build.yml/badge.svg)](https://github.com/srobo/kit-test-scripts/actions/workflows/test_build.yml)
+[![PyPI version](https://badge.fury.io/py/sr-kit-test.svg)](https://badge.fury.io/py/sr-kit-test)
 [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://opensource.org/licenses/MIT)
 
 A collection of test scripts for the Student Robotics v4 kit.

@@ -68,9 +68,9 @@ jobs:
         name: package
         path: |
           dist
-    # - name: Publish to PyPi
-    #   if: github.ref_type	== 'tag'
-    #   uses: pypa/gh-action-pypi-publish@release/v1
+    - name: Publish to PyPi
+      if: github.ref_type	== 'tag'
+      uses: pypa/gh-action-pypi-publish@release/v1
     - name: Do release with image artifact
       if: github.ref_type == 'tag'
       uses: ncipollo/release-action@v1

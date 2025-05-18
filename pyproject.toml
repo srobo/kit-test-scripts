@@ -1,5 +1,5 @@
 [project]
-name = "kit_test"
+name = "sr-kit-test"
 description = "A collection of test scripts for the Student Robotics v4 kit."
 readme = "README.md"
 license = {file = "LICENSE"}
