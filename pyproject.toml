@@ -34,7 +34,7 @@ dev = [
     "types-pyserial >=3,<4",
 ]
 inv = [
-    "sr.tools ==1.2.0"
+    "sr.tools @git+https://github.com/srobo/tools.git@minimal"
 ]
 
 [project.scripts]
