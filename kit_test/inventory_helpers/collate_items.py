@@ -18,8 +18,16 @@ logger = logging.getLogger("collate_items")
 GIT_EXE = os.getenv('GIT_EXE', 'git')
 
 
-def pack_box(box: str, contents: List[str], collation_loc: Optional[Path]) -> None:
+def pack_box(
+    box: str,
+    contents: List[str],
+    collation_loc: Optional[Path],
+    auto_commit: bool,
+) -> None:
     """Move contents into box."""
+    if auto_commit:
+        subprocess.check_call([GIT_EXE, 'pull', '--rebase'])
+
     inv = get_inventory()
     try:
         # find box, check if box contains anything
@@ -62,6 +70,11 @@ def pack_box(box: str, contents: List[str], collation_loc: Optional[Path]) -> No
     [box_asset] = inv.query(f'code:{box}')
     logger.info(f"Box {box_asset.code} now contains {len(box_asset.children)} items")
 
+    if auto_commit:
+        subprocess.check_call([GIT_EXE, 'commit', '--message', f'Pack box {box}'])
+        subprocess.check_call([GIT_EXE, 'pull', '--rebase'])
+        subprocess.check_call([GIT_EXE, 'push'])
+
 
 def main(args: argparse.Namespace) -> None:
     """Main function for collating items."""
@@ -72,7 +85,7 @@ def main(args: argparse.Namespace) -> None:
         working_dir = None
 
     try:
-        pack_box(args.box, args.contents, working_dir)
+        pack_box(args.box, args.contents, working_dir, args.auto_commit)
     except RuntimeError as e:
         logger.error(e)
         exit(1)
@@ -99,5 +112,8 @@ def create_subparser(subparsers: argparse._SubParsersAction) -> None:
             "Uses the environment variable SR_INVENTORY for the default, "
             "currently: %(default)s"
         ))
+    parser.add_argument(
+        '--auto-commit', action='store_true',
+        help="Automatically commit and push changes to the inventory")
 
     parser.set_defaults(func=main)
