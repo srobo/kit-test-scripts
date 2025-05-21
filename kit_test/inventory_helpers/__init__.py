@@ -3,7 +3,7 @@ import importlib
 from importlib.util import find_spec
 
 subcommands = [
-    # "collate_tested",
+    "collate_tested",
     "collate_items",
     "empty_boxes",
 ]
