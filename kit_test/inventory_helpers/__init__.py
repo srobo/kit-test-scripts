@@ -12,7 +12,7 @@ helper_description = "A collection of useful inventory helpers"
 
 if find_spec('sr.tools') is None:
     subcommands = []
-    helper_description = "A collection of useful inventory helpers. Requires sr.tools"
+    helper_description = "A collection of useful inventory helpers. Requires sr.tools >=2"
 
 
 def create_subparser(subparsers: argparse._SubParsersAction) -> None:
