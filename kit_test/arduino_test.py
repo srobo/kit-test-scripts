@@ -135,7 +135,7 @@ def test_arduino(
 
         assert parse_test_output(lines, results), "Failed analog tests"
         # Test summary only contains content when there are failures
-        assert test_summary == "", test_summary
+        assert test_summary == "TEST COMPLETE", test_summary
 
         # Flash arduino with stock firmware
         flash_arduino(avrdude, arduino.port, stock_fw_hex)
