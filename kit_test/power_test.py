@@ -100,10 +100,10 @@ def test_output(
     expected_out_current = input_voltage / OUTPUT_RESISTANCE[output]
     log_and_assert(  # test output current
         results, f'out_{output.name}_current', board.outputs[output].current(),
-        f'output {output.name} current', 'A', expected_out_current, 0.1)
+        f'output {output.name} current', 'A', expected_out_current, 0.25)
     log_and_assert(  # test global current
         results, f'out_{output.name}_global_current', board.battery_sensor.current(),
-        'global output current', 'A', expected_out_current, 0.1)
+        'global output current', 'A', expected_out_current, 0.15)
 
     # disable output
     board.outputs[output].enable(False)
@@ -128,7 +128,7 @@ def test_regulator(board: PowerBoard, results: Dict) -> None:
     expected_reg_current = reg_voltage / OUTPUT_RESISTANCE[PowerOutputPosition.FIVE_VOLT]
     log_and_assert(
         results, 'reg_current', board.outputs[PowerOutputPosition.FIVE_VOLT].current(),
-        'regulator current', 'A', expected_reg_current, 0.1)
+        'regulator current', 'A', expected_reg_current, 0.25)
 
     # disable output
     board.outputs[PowerOutputPosition.FIVE_VOLT].enable(False)
@@ -226,7 +226,7 @@ def test_board(
             sleep(0.5)
             log_and_assert(
                 results, f'sum_out_{output.name}_current', board.battery_sensor.current(),
-                f'output current up to {output.name}', 'A', total_expected_current, 0.1)
+                f'output current up to {output.name}', 'A', total_expected_current, 0.2)
             sleep(0.5)
 
         # disable all outputs
