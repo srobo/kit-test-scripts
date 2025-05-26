@@ -120,9 +120,9 @@ def collate_tested_items(
 
         part_code = entry['asset']
         prev_serial = item.info['serial']
-        serial = (entry['serial'])
+        serial = entry['serial']
 
-        if serial != item.info['serial']:
+        if serial != prev_serial:
             logger.warning(
                 f"Asset {part_code!r} previously had a recorded serial of "
                 f"{prev_serial!r} updating to {serial!r}"
