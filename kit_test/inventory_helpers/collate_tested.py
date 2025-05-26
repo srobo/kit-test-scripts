@@ -6,6 +6,7 @@ import logging
 import os
 import subprocess
 import textwrap
+from collections import defaultdict
 from contextlib import redirect_stdout
 from datetime import date
 from pathlib import Path
@@ -79,8 +80,28 @@ def collate_tested_items(
             writer.writeheader()
             writer.writerows(test_data)
 
+    asset_passed = defaultdict(bool)
     for entry in test_data:
         entry['passed'] = (entry['passed'] == 'True')
+        if entry['passed']:
+            asset_passed[entry['asset']] = True
+
+    # Take the last passsing entry for each asset (or last failing if no pass)
+    seen_assets = set()
+    for entry in reversed(test_data):
+        part_code = entry['asset']
+
+        # Only keep the final run of each asset, note this loop iterates in reverse
+        if part_code in seen_assets:
+            test_data.remove(entry)
+            continue
+
+        # Make sure to keep the final successful run
+        if asset_passed[part_code] and not entry['passed']:
+            test_data.remove(entry)
+            continue
+
+        seen_assets.add(part_code)
 
     # Filter based on include_passed/include_failed
     test_data = list(filter(
