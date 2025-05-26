@@ -114,11 +114,12 @@ def collate_tested_items(
 
     # if asset already has serial, warn if they differ
     for entry in test_data:
+        item = entry['_inv_item']
         if 'serial' not in item.info or not entry.get('serial'):
             continue
 
         part_code = entry['asset']
-        prev_serial = entry['_inv_item'].info['serial']  # type: ignore[union-attr]
+        prev_serial = item.info['serial']
         serial = (entry['serial'])
 
         if serial != item.info['serial']:
